@@ -6,11 +6,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from tqdm import tqdm
 
-# ==========================================
-# 1. Exact Hyperparameters from Paper
-# ==========================================
-# "Both algorithms used a learning rate of n=10^-3" (Page 9)
-# "Weight decay a=10^-6" (Page 9)
+# Hyperparameters
 LEARNING_RATE = 1e-3 
 WEIGHT_DECAY = 1e-6
 
@@ -20,25 +16,22 @@ HIDDEN_DIM = 1000
 OUTPUT_DIM = 10
 
 # Training settings
-BATCH_SIZE = 64 # Smaller batch size helps gradient updates with Sum reduction
-EPOCHS = 100    # Paper runs until convergence/overfitting. 20 is too short for 1e-3.
+BATCH_SIZE = 64 
+EPOCHS = 100    
 
 # Device
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Running on: {DEVICE}")
 
-# Set deterministic seeds for exact reproducibility
-SEED = 2014 # Year of the paper
+# Set deterministic seed
+SEED = 2014 
 torch.manual_seed(SEED)
 np.random.seed(SEED)
 if torch.cuda.is_available():
     torch.cuda.manual_seed(SEED)
 
-# ==========================================
-# 2. Data Loading (MNIST)
-# ==========================================
+# Data Loading (MNIST)
 def load_data():
-    # Standard normalization
     transform = transforms.Compose([
         transforms.ToTensor(),
         transforms.Normalize((0.1307,), (0.3081,)),
@@ -55,9 +48,7 @@ def load_data():
     
     return train_loader, test_loader
 
-# ==========================================
-# 3. The Model (Manual Implementation)
-# ==========================================
+# The Model (Manual Implementation)
 class Network:
     def __init__(self, mode='bp'):
         """
@@ -105,7 +96,7 @@ class Network:
         
         # Output Layer
         self.a1 = self.h.mm(self.W) + self.b
-        self.y = self.sigmoid(self.a1) # Page 9: "sigmoidal hidden and output units"
+        self.y = self.sigmoid(self.a1) 
         
         return self.y
 
@@ -122,7 +113,6 @@ class Network:
         # However, we are passing through the output non-linearity (Sigmoid).
         # delta_out = dL/da1 = (dL/dy) * (dy/da1) 
         # delta_out = -(target - y) * y(1-y)
-        # Note: In standard derivations, the "error signal" delta implies the derivative is included.
         
         diff = target - self.y # (y* - y)
         d_sigma_out = self.d_sigmoid(self.y)
@@ -204,9 +194,7 @@ class Network:
         angle = torch.acos(cos_theta)
         return torch.rad2deg(angle).item()
 
-# ==========================================
-# 4. Experiment Runner
-# ==========================================
+# Experiment Runner
 def run_experiment(mode, train_loader, test_loader):
     print(f"\nTraining {mode.upper()}...")
     net = Network(mode=mode)
@@ -217,10 +205,9 @@ def run_experiment(mode, train_loader, test_loader):
     errors = []
     angles = []
     
-    # === ADD THIS SECTION: Measure "Epoch 0" (Before Training) ===
     correct = 0
     total = 0
-    with torch.no_grad(): # No gradient needed for test
+    with torch.no_grad(): 
         for imgs, labels in test_loader:
             imgs = imgs.to(DEVICE)
             labels = labels.to(DEVICE)
@@ -231,11 +218,9 @@ def run_experiment(mode, train_loader, test_loader):
     
     initial_error = 100.0 * (1.0 - correct/total)
     errors.append(initial_error)
-    # Angle is undefined or 90 before first update, usually ignored or set to 90
     angles.append(90.0 if mode == 'fa' else 0.0) 
     
     print(f"Epoch 0 | Error: {initial_error:.2f}% | (Before Training)")
-    # =============================================================
 
     for epoch in range(EPOCHS):
         epoch_angles = []
@@ -278,9 +263,7 @@ def run_experiment(mode, train_loader, test_loader):
         
     return errors, angles
 
-# ==========================================
-# 5. Execution
-# ==========================================
+# Execution
 if __name__ == "__main__":
     train, test = load_data()
     
